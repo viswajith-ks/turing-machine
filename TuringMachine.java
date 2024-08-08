@@ -1,18 +1,54 @@
 import java.lang.Thread;
 import java.util.Scanner;
 public class TuringMachine{
+  DFA automata;
 	char[] tape;
 	int head,TAPESIZE;
-	public TuringMachine(int tapesize){
+	public TuringMachine(int tapesize,int statecount){
 		this.TAPESIZE=tapesize;
 		tape=new char[TAPESIZE];
 		head=(TAPESIZE-1)/2;
 		for(int i=0;i<TAPESIZE;i++)
 		tape[i]='B';
+		automata=new DFA(statecount);
 	}
 	
-	public void write(char bit){
-		tape[head]=bit;
+	public void setAutomata(){ //unreadable code ahead
+	  Scanner obj=new Scanner(System.in);
+    System.out.println("Enter in the form TCMN where T is the current symbol in tape,C is the change in tape cell, M is the movement of the head and N is the next state's number");
+    System.out.println("Enter TCMN where T={0,1,b} C={0,1,b} M={l,r} N={0-" + automata.STATECOUNT + "}. enter done after completing the transition definition is done.");
+    for(int i=0;i<automata.STATECOUNT;i++){
+    System.out.print("Final state? ");
+    if(obj.next().contains("yes"))
+    automata.States[i].isfinal=true;
+	System.out.println("for state " + i);
+      String transition=obj.next();
+      if(transition.equals("done")==true)
+      continue;
+      do{
+        transition=transition.replace("b","2");
+        char input=transition.charAt(1);
+        if(transition.charAt(1)=='2')
+        input='B';
+        System.out.println(transition);
+        automata.States[i].move[Character.getNumericValue(transition.charAt(0))]=transition.charAt(2);
+        automata.States[i].write[Character.getNumericValue(transition.charAt(0))]=input;
+        automata.States[i].neighbors[Character.getNumericValue(transition.charAt(0))]=automata.States[Character.getNumericValue(transition.charAt(3))];
+        transition=obj.next();
+	    }while(transition.equals("done")==false);
+	  }
+	}
+	
+	public boolean isEmpty(){
+	for(int i=0;i<TAPESIZE;i++){
+	if(tape[i]=='0'||tape[i]=='1')
+	return false;
+	}
+	return true;
+  }
+
+	public void write(char symbol){
+	  tape[head]=symbol;
 	}
 	
 	public char read(){
@@ -28,12 +64,26 @@ public class TuringMachine{
 	}
 	
 	public void reset(){
-    head=(TAPESIZE/2)+1;
+    head=(TAPESIZE/2)-1;
     for(int i=0;i<TAPESIZE;i++)
     tape[i]='B';
   }
+  
+  public void fillTape(String str){
+    for (int i=0;i<str.length();i++){
+	if(str.charAt(i)=='b')
+		write('B');
+	else
+      write(str.charAt(i));
+      moveRight();
+    }
+  }
 	
 	public void printTape(){
+	  if(isEmpty()==true){
+	  System.out.println("EMPTY");
+	  return;
+	  }
 		int start=0,end=0;
 		for(int i=0; i<TAPESIZE; i++){
 			if(tape[i]!='B'){
@@ -99,20 +149,72 @@ public class TuringMachine{
         catch (InterruptedException e) {
             System.out.println("err");
         }
-	System.out.print("\033[H\033[2J");
+	System.out.println();
 	driver('o'); 
 	}
+  }
+  
+  public boolean runMachine(){
+    int start=0,end=0;
+		for(int i=0; i<TAPESIZE; i++){
+			if(tape[i]!='B'){
+				start=i;
+				break;
+			}
+		}
+		for(int i=TAPESIZE-1; i>=0; i--){
+			if(tape[i]!='B'){
+				end=i;
+				break;
+			}
+		}
+		head=start;
+		System.out.println(read());
+		System.out.println(head);
+		automata.Currentstate=automata.Initstate;
+		System.out.println(automata.Currentstate.isfinal);
+		printTape();
+		while(!(automata.Currentstate.isfinal==true)&&head<=TAPESIZE&&head>=0){
+		System.out.println("--------------------------------------------------------------------------");
+		int input;
+		if(read()=='0')
+		input=0;
+		else if(read()=='1')
+		input=1;
+		else
+		input=2;
+		char temp=automata.Currentstate.write[input];
+		char tem=automata.Currentstate.move[input];
+		if(automata.feed(read())==false)
+		return false;
+		write(temp);
+		System.out.println("after write");
+		printTape();
+		if(tem=='l')
+		moveLeft();
+		else
+		moveRight();
+		System.out.println("after move");
+		printTape();
+		try{
+		Thread.sleep(420);
+		}catch(InterruptedException e){
+		}
+		}
+		System.out.println("--------------------------------------------------------------------------");
+		return(automata.Currentstate.isfinal==true);
   }
 
 	
 	public static void main(String args[]){
 		Scanner reader=new Scanner(System.in);
-		TuringMachine Machine=new TuringMachine(Integer.parseInt(args[0]));
+		TuringMachine Machine=new TuringMachine(Integer.parseInt(args[0]),Integer.parseInt(args[1]));
+		Machine.setAutomata();
 		System.out.println("the legendary turing machine. has a tape and read write heads (0,1) and move operations (left right. blank spaces are marked with 'B'");
 		char choice='x';
 		System.out.println(" <a/l> go left\t <s/0> write 0\t <w/1> write 1\n <d/r> go right\t <p> read\t <o> display tape\n <x> EXIT \n\t");
 		choice=reader.next().charAt(0);
-		while(choice!='x'){
+		do{
 		    if("w1axls0drpo".contains(Character.toString(choice)))
 		      Machine.driver(choice);
 		    else{
@@ -122,9 +224,42 @@ public class TuringMachine{
 		    choice=reader.next().charAt(0);
 		    System.out.println();
 		}while(choice!='x');
-		System.out.println("enter a string");
-		String str=reader.next();
-		Machine.runString(str);
-
+		String str;
+		while(1==1){
+		Machine.reset();
+		System.out.println("enter the tape contents or exit to exit");
+		str=reader.next();
+		if(str.equals("exit")==true)
+		return;
+		Machine.fillTape(str);
+		if(Machine.runMachine()==true)
+		System.out.println("String is accepted by the Turing Machine");
+		else
+		System.out.println("String is not accepted by the Turing Machine");
+		}
 	}
 }
+	/*
+}while(true){
+		System.out.println("enter a string")while(true){
+		System.out.println("enter a string");
+		String str=reader.next();
+		Machine.reset();
+		Machine.fillTape(str);
+		System.out.println("sf");
+		Machine.printTape();
+		System.out.println("DDD");
+		Machine.runString(str);
+		System.out.println();
+		Machine.automata.Currentstate=Machine.automata.Initstate;
+		while(Machine.automata.Currentstate.neighbors[(Machine.read()=='b'?2:Character.getNumericValue(Machine.read()))]!=null){
+      char input=Machine.read();
+      Machine.write(Machine.automata.Currentstate.write);
+      Machine.automata.feed(input);
+      System.out.print("sdjf");
+      Machine.printTape();
+      System.out.print("OOO");
+   }
+   if(Machine.automata.Currentstate.isfinal==true)System.out.print("accepted");else System.out.print("not accepted");
+   }
+   */

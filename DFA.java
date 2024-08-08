@@ -3,30 +3,33 @@ public class DFA{
 	State Initstate;
 	State Currentstate;
 	State[] States;
-	int statecount;
+	int STATECOUNT;
 	
-	public DFA(int statecount){
-		this.statecount=statecount;
-		States=new State[statecount];
+	public DFA(int STATECOUNT){
+		this.STATECOUNT=STATECOUNT;
+		States=new State[STATECOUNT];
+		for(int i=0;i<STATECOUNT;i++)
+			States[i]=new State();
+		Initstate=States[0];
+		Currentstate=Initstate;
+	}
+	
+	public void setState(int current,int input){
+	  Scanner obj=new Scanner(System.in);
+		System.out.print("q" + current + "(" + (input==2?"B":input) + ")-> q");
+	  States[current].neighbors[input]=States[obj.nextInt()];
 	}
 	
 	public void setStates(){
 		Scanner obj=new Scanner(System.in);
-		for(int i=0;i<statecount;i++)
-			States[i]=new State();
-		for(int i=0;i<statecount;i++){
+		for(int i=0;i<STATECOUNT;i++){
 			for(int j=0;j<3;j++){
-				System.out.print("q" + i + "(" + j + ")-> q");
-				int x=obj.nextInt();
-				States[i].neighbors[j]=States[x];
+				setState(i,j);
 			}
 			System.out.print("enter yes if q"+ i +" is a final state ");
-			if(obj.next().charAt(0)=='y'){
+			if(obj.next().charAt(0)=='y')
 				States[i].isfinal=true;
-			}
 		}
-		Initstate=States[0];
-		Currentstate=Initstate;
 	}
 
 	public boolean feed(char symbol){
@@ -38,12 +41,12 @@ public class DFA{
 			Currentstate=Currentstate.neighbors[1];
 			return true;
 		}
-		else if(symbol=='b'&&Currentstate.neighbors[2]!=null){
+		else if((symbol=='b'||symbol=='B'||symbol=='2')&&Currentstate.neighbors[2]!=null){
 			Currentstate=Currentstate.neighbors[2];
 			return true;
 		}
 		else
-			System.out.println("invalid state");
+			System.out.println("invalid input " + symbol);
 			return false;
 	}
 
