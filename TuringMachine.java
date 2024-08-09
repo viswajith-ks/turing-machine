@@ -81,7 +81,7 @@ public class TuringMachine{
 	
 	public void printTape(){
 	  if(isEmpty()==true){
-	  System.out.println("EMPTY");
+	  System.out.println("TAPE EMPTY (full of blank symbols)");
 	  return;
 	  }
 		int start=0,end=0;
@@ -97,6 +97,8 @@ public class TuringMachine{
 				break;
 			}
 		}
+		start--;
+		end++;
 		if(head<start)
 			start=head;
 		if(head>end)
@@ -144,7 +146,7 @@ public class TuringMachine{
 	for(int i=0;i<str.length();i++){
 		driver(str.charAt(i));
 		try{
-		Thread.sleep(690);
+		Thread.sleep(296);
 		}
         catch (InterruptedException e) {
             System.out.println("err");
@@ -172,7 +174,6 @@ public class TuringMachine{
 		System.out.println(read());
 		System.out.println(head);
 		automata.Currentstate=automata.Initstate;
-		System.out.println(automata.Currentstate.isfinal);
 		printTape();
 		while(!(automata.Currentstate.isfinal==true)&&head<=TAPESIZE&&head>=0){
 		System.out.println("--------------------------------------------------------------------------");
@@ -188,16 +189,14 @@ public class TuringMachine{
 		if(automata.feed(read())==false)
 		return false;
 		write(temp);
-		System.out.println("after write");
 		printTape();
 		if(tem=='l')
 		moveLeft();
 		else
 		moveRight();
-		System.out.println("after move");
 		printTape();
 		try{
-		Thread.sleep(420);
+		Thread.sleep(69);
 		}catch(InterruptedException e){
 		}
 		}
@@ -209,12 +208,11 @@ public class TuringMachine{
 	public static void main(String args[]){
 		Scanner reader=new Scanner(System.in);
 		TuringMachine Machine=new TuringMachine(Integer.parseInt(args[0]),Integer.parseInt(args[1]));
-		Machine.setAutomata();
 		System.out.println("the legendary turing machine. has a tape and read write heads (0,1) and move operations (left right. blank spaces are marked with 'B'");
 		char choice='x';
 		System.out.println(" <a/l> go left\t <s/0> write 0\t <w/1> write 1\n <d/r> go right\t <p> read\t <o> display tape\n <x> EXIT \n\t");
 		choice=reader.next().charAt(0);
-		do{
+		while(choice!='x'){
 		    if("w1axls0drpo".contains(Character.toString(choice)))
 		      Machine.driver(choice);
 		    else{
@@ -223,7 +221,8 @@ public class TuringMachine{
 		    }
 		    choice=reader.next().charAt(0);
 		    System.out.println();
-		}while(choice!='x');
+		}
+		Machine.setAutomata();
 		String str;
 		while(1==1){
 		Machine.reset();
@@ -239,27 +238,3 @@ public class TuringMachine{
 		}
 	}
 }
-	/*
-}while(true){
-		System.out.println("enter a string")while(true){
-		System.out.println("enter a string");
-		String str=reader.next();
-		Machine.reset();
-		Machine.fillTape(str);
-		System.out.println("sf");
-		Machine.printTape();
-		System.out.println("DDD");
-		Machine.runString(str);
-		System.out.println();
-		Machine.automata.Currentstate=Machine.automata.Initstate;
-		while(Machine.automata.Currentstate.neighbors[(Machine.read()=='b'?2:Character.getNumericValue(Machine.read()))]!=null){
-      char input=Machine.read();
-      Machine.write(Machine.automata.Currentstate.write);
-      Machine.automata.feed(input);
-      System.out.print("sdjf");
-      Machine.printTape();
-      System.out.print("OOO");
-   }
-   if(Machine.automata.Currentstate.isfinal==true)System.out.print("accepted");else System.out.print("not accepted");
-   }
-   */
