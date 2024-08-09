@@ -18,7 +18,7 @@ public class TuringMachine{
     System.out.println("Enter in the form TCMN where T is the current symbol in tape,C is the change in tape cell, M is the movement of the head and N is the next state's number");
     System.out.println("Enter TCMN where T={0,1,b} C={0,1,b} M={l,r} N={0-" + automata.STATECOUNT + "}. enter done after completing the transition definition is done.");
     for(int i=0;i<automata.STATECOUNT;i++){
-    System.out.print("Final state? ");
+    System.out.print("is q" + i +" a final state? ");
     if(obj.next().contains("yes"))
     automata.States[i].isfinal=true;
 	System.out.println("for state " + i);
