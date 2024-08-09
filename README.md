@@ -1,4 +1,4 @@
-an attempt at recreating Turing Machine and its corresponding DFA
+an attempt at recreating Turing Machine and its corresponding DFA using graphs.
 first CLA for the TuringMachine main is the size of the tape, second is the number of states
 first CLA for the DFA main is the number of states
 following is the input for a turing machinie that accepts all strings in the language L={0<sup>n</sup>1<sup>n+1</sup> | n>=0}
