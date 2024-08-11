@@ -33,7 +33,7 @@ no
 1bl7
 done
 yes
-1bl7
+bbl7
 done
 ```
 copy paste this input on the first prompt after the turing machine description
