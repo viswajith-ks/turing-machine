@@ -5,6 +5,7 @@ first CLA for the TuringMachine main is the size of the tape, second is the numb
 first CLA for the DFA main is the number of states
 
 following is the input for a turing machinie that accepts all strings in the language L={0<sup>n</sup>1<sup>n+1</sup> | n>=0}
+(the number of states for the following inputs is 9)
 ```
 no
 0br1
@@ -30,11 +31,15 @@ no
 bbr0
 done
 no
-1bl7
+1br7
+done
+no
+bbr8
 done
 yes
-bbl7
+bbr8
 done
+
 ```
 copy paste this input on the first prompt after the turing machine description
 
