@@ -1,244 +1,169 @@
-import java.lang.Thread;
 import java.util.Scanner;
+
 public class TuringMachine {
-    DFA automata;
-    char[] tape;
-    int head, TAPESIZE;
-    public TuringMachine(int tapesize, int statecount) {
-        this.TAPESIZE = tapesize;
-        tape = new char[TAPESIZE];
-        head = (TAPESIZE - 1) / 2;
-        for (int i = 0; i < TAPESIZE; i++) tape[i] = 'B';
-        automata = new DFA(statecount);
+    // Use a dedicated constant for the blank symbol
+    private static final char BLANK_SYMBOL = '_';
+
+    private final FiniteControl finiteControl;
+    private final char[] tape;
+    private int head;
+    private final int TAPE_SIZE;
+
+    public TuringMachine(int tapeSize, int stateCount) {
+        this.TAPE_SIZE = tapeSize;
+        this.tape = new char[TAPE_SIZE];
+        this.finiteControl = new FiniteControl(stateCount);
+        reset();
     }
 
-    public void setAutomata() { // unreadable code ahead
-        Scanner obj = new Scanner(System.in);
-        System.out.println("Enter in the form TCMN where T is the current symbol in tape,C is the change in tape cell, M is the movement of the head and N is the next state's number");
-        System.out.println("Enter TCMN where T={0,1,b} C={0,1,b} M={l,r} N={0-" + automata.STATECOUNT + "}. enter done after completing the transition definition is done.");
-        for (int i = 0; i < automata.STATECOUNT; i++) {
-            System.out.print("is q" + i + " a Final state? ");
-            if (obj.next().contains("yes"))
-                automata.States[i].isfinal = true;
-            System.out.println("for state " + i);
-            String transition = obj.next();
-            if (transition.equals("done") == true)
-                continue;
-            do {
-                transition = transition.replace("b", "2");
-                char input = transition.charAt(1);
-                if (transition.charAt(1) == '2')
-                    input = 'B';
-                System.out.println(transition);
-                automata.States[i].move[Character.getNumericValue(transition.charAt(0))] = transition.charAt(2);
-                automata.States[i].write[Character.getNumericValue(transition.charAt(0))] = input;
-                automata.States[i].neighbors[Character.getNumericValue(transition.charAt(0))] = automata.States[Character.getNumericValue(transition.charAt(3))];
-                transition = obj.next();
-            } while (transition.equals("done") == false);
+    public void reset() {
+        this.head = TAPE_SIZE / 2;
+        for (int i = 0; i < TAPE_SIZE; i++) {
+            tape[i] = BLANK_SYMBOL;
+        }
+        this.finiteControl.reset();
+    }
+
+    public void defineTransitions() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("\n--- Define Machine Transitions ---");
+
+        for (int i = 0; i < finiteControl.getStateCount(); i++) {
+            State currentState = finiteControl.getState(i);
+            System.out.print("Is q" + i + " a Final state? (yes/no): ");
+            if (scanner.next().equalsIgnoreCase("yes")) {
+                currentState.setFinal(true);
+            }
+
+            System.out.println("Define transitions for state q" + i + ". Format: TCMN");
+            System.out.println("T=Tape Symbol (use '" + BLANK_SYMBOL + "' for blank), C=Char to Write, M=Move (L,R), N=Next State");
+            System.out.println("Enter 'done' when finished with this state.");
+
+            while (true) {
+                System.out.print("q" + i + "> ");
+                String input = scanner.next().toUpperCase();
+                if (input.equals("DONE")) {
+                    break;
+                }
+
+                if (input.length() < 4) {
+                    System.out.println("Invalid format. Must be at least 4 characters (TCMN). Try again.");
+                    continue;
+                }
+
+                try {
+                    char tapeSymbol = input.charAt(0);
+                    char writeSymbol = input.charAt(1);
+                    char moveDirection = Character.toLowerCase(input.charAt(2));
+                    int nextStateNum = Integer.parseInt(input.substring(3));
+
+                    State nextState = finiteControl.getState(nextStateNum);
+
+                    if ((moveDirection != 'l' && moveDirection != 'r') || nextState == null) {
+                        System.out.println("Invalid transition parameter. Check your Move Direction or Next State number.");
+                        continue;
+                    }
+
+                    Transition newTransition = new Transition(writeSymbol, moveDirection, nextState);
+                    currentState.addTransition(tapeSymbol, newTransition);
+                    System.out.println("  -> Added: on '" + tapeSymbol + "', write '" + writeSymbol + "', move '" + moveDirection + "', go to q" + nextStateNum);
+
+                } catch (Exception e) {
+                    System.out.println("Invalid format. Please follow TCMN (e.g., AXR1).");
+                }
+            }
         }
     }
 
-    public boolean isEmpty() {
-        for (int i = 0; i < TAPESIZE; i++) {
-            if (tape[i] == '0' || tape[i] == '1')
+    public void fillTape(String input) {
+        int tapeStart = (TAPE_SIZE / 2) - (input.length() / 2);
+        for (int i = 0; i < input.length(); i++) {
+            tape[tapeStart + i] = Character.toUpperCase(input.charAt(i));
+        }
+        this.head = tapeStart;
+    }
+
+    public void printTape() {
+        System.out.print("Tape: ");
+        int start = Math.max(0, head - 30);
+        int end = Math.min(TAPE_SIZE - 1, head + 30);
+        if (start > 0) System.out.print("...");
+        for (int i = start; i <= end; i++) {
+             if (i == head) {
+                System.out.print("\033[42m\033[31;1;5m" + tape[i] + "\033[0m");
+            } else {
+                System.out.print(tape[i]);
+            }
+        }
+        if (end < TAPE_SIZE - 1) System.out.print("...");
+        System.out.println();
+    }
+
+    public boolean runMachine() {
+        System.out.println("\n--- Running Machine ---");
+        printTape();
+        int stepCount = 0;
+        while (!finiteControl.getCurrentState().isFinal()) {
+             if(stepCount++ > 1000) {
+                System.out.println("HALT: Exceeded maximum steps (1000). Machine may be in an infinite loop.");
                 return false;
+            }
+            char currentSymbol = tape[head];
+            Transition transition = finiteControl.getCurrentState().getTransitionFor(currentSymbol);
+            if (transition == null) {
+                System.out.println("HALT: No transition defined for symbol '" + currentSymbol + "' at current state.");
+                return false;
+            }
+            tape[head] = transition.getSymbolToWrite();
+            if (transition.getMoveDirection() == 'l') {
+                head--;
+            } else {
+                head++;
+            }
+            if (head < 0 || head >= TAPE_SIZE) {
+                System.out.println("HALT: Tape head moved out of bounds.");
+                return false;
+            }
+            finiteControl.setCurrentState(transition.getNextState());
+            printTape();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         return true;
     }
 
-    public void write(char symbol) {
-        tape[head] = symbol;
-    }
-
-    public char read() {
-        return tape[head];
-    }
-
-    public void moveLeft() {
-        head--;
-    }
-
-    public void moveRight() {
-        head++;
-    }
-
-    public void reset() {
-        head = (TAPESIZE / 2) - 1;
-        for (int i = 0; i < TAPESIZE; i++) tape[i] = 'B';
-    }
-
-    public void fillTape(String str) {
-        for (int i = 0; i < str.length(); i++) {
-            if (str.charAt(i) == 'b')
-                write('B');
-            else
-                write(str.charAt(i));
-            moveRight();
-        }
-    }
-
-    public void printTape() {
-        if (isEmpty() == true) {
-            System.out.println("TAPE EMPTY (full of blank symbols)");
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            System.out.println("Usage: java TuringMachine <tape_size> <number_of_states>");
             return;
         }
-        int start = 0, end = 0;
-        for (int i = 0; i < TAPESIZE; i++) {
-            if (tape[i] != 'B') {
-                start = i;
-                break;
+        try {
+            int tapeSize = Integer.parseInt(args[0]);
+            int stateCount = Integer.parseInt(args[1]);
+            TuringMachine machine = new TuringMachine(tapeSize, stateCount);
+            Scanner reader = new Scanner(System.in);
+            machine.defineTransitions();
+            while (true) {
+                machine.reset();
+                System.out.print("\nEnter the initial tape string (or 'exit' to quit): ");
+                String input = reader.next();
+                if (input.equalsIgnoreCase("exit")) {
+                    System.out.println("Exiting simulator.");
+                    break;
+                }
+                machine.fillTape(input);
+                if (machine.runMachine()) {
+                    System.out.println("\nResult: String ACCEPTED");
+                } else {
+                    System.out.println("\nResult: String REJECTED");
+                }
             }
-        }
-        for (int i = TAPESIZE - 1; i >= 0; i--) {
-            if (tape[i] != 'B') {
-                end = i;
-                break;
-            }
-        }
-        start--;
-        end++;
-        if (head < start)
-            start = head;
-        if (head > end)
-            end = head;
-        for (int i = start; i <= end; i++) {
-            if (i == head)
-                System.out.print("\033[42;2m\033[31;1;5m[" + tape[i] + "]\033[0m"); // ansi escape codes for bootifulness.
-            else
-                System.out.print("[" + tape[i] + "]");
-        }
-        System.out.println();
-    }
-
-    public void driver(char x) {
-        switch (x) {
-            case 'w': // write 1
-            case '1':
-                write('1');
-                break;
-            case 'a': // go left
-            case 'l':
-                if (head > 0)
-                    moveLeft();
-                else
-                    System.out.println("reached left limit");
-                break;
-            case 's': // in 0
-            case '0':
-                write('0');
-                break;
-            case 'd': // go right
-            case 'r':
-                if (head < TAPESIZE - 1)
-                    moveRight();
-                else
-                    System.out.println("reached right limit");
-                break;
-            case 'b':
-                write('b');
-                break;
-            case 'p':
-                System.out.println("[" + read() + "]");
-                break;
-            case 'o':
-                printTape();
-                break;
-            default:
-                System.out.println("err");
-        }
-    }
-
-    public void runString(String str) {
-        for (int i = 0; i < str.length(); i++) {
-            driver(str.charAt(i));
-            try {
-                Thread.sleep(296);
-            } catch (InterruptedException e) {
-                System.out.println("err");
-            }
-            System.out.println();
-            driver('o');
-        }
-    }
-
-    public boolean runMachine() {
-        int start = 0, end = 0;
-        for (int i = 0; i < TAPESIZE; i++) {
-            if (tape[i] != 'B') {
-                start = i;
-                break;
-            }
-        }
-        for (int i = TAPESIZE - 1; i >= 0; i--) {
-            if (tape[i] != 'B') {
-                end = i;
-                break;
-            }
-        }
-        head = start;
-        System.out.println(read());
-        System.out.println(head);
-        automata.Currentstate = automata.Initstate;
-        printTape();
-        while (!(automata.Currentstate.isfinal == true) && head <= TAPESIZE && head >= 0) {
-            System.out.println("--------------------------------------------------------------------------");
-            int input;
-            if (read() == '0')
-                input = 0;
-            else if (read() == '1')
-                input = 1;
-            else
-                input = 2;
-            char temp = automata.Currentstate.write[input];
-            char tem = automata.Currentstate.move[input];
-            if (automata.feed(read()) == false)
-                return false;
-            write(temp);
-            printTape();
-            if (tem == 'l')
-                moveLeft();
-            else
-                moveRight();
-            printTape();
-            try {
-                Thread.sleep(69);
-            } catch (InterruptedException e) {
-            }
-        }
-        System.out.println("--------------------------------------------------------------------------");
-        return (automata.Currentstate.isfinal == true);
-    }
-
-    public static void main(String args[]) {
-        Scanner reader = new Scanner(System.in);
-        TuringMachine Machine = new TuringMachine(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
-        System.out.println("the legendary turing machine. has a tape and read write heads (0,1) and move operations (left right. blank spaces are marked with 'B'");
-        char choice = 'x';
-        System.out.print(" <a/l> go left\t <s/0> write 0\t <w/1> write 1\n <d/r> go right\t <p> read\t <o> display tape\n <x> EXIT\nenter choice: ");
-        choice = reader.next().charAt(0);
-        while (choice != 'x') {
-            if ("w1axls0drpo".contains(Character.toString(choice)))
-                Machine.driver(choice);
-            else {
-                System.out.println("invalid choice");
-                System.out.print(" <a/l> go left\t <s/0> write 0\t <w/1> write 1\n <d/r> go right\t <p> read\t <o> display tape\n <x> EXIT\n");
-            }
-            System.out.print("enter choice: ");
-            choice = reader.next().charAt(0);
-        }
-        Machine.setAutomata();
-        String str;
-        while (1 == 1) {
-            Machine.reset();
-            System.out.println("enter the tape contents or exit to exit");
-            str = reader.next();
-            if (str.equals("exit") == true)
-                return;
-            Machine.fillTape(str);
-            if (Machine.runMachine() == true)
-                System.out.println("String is accepted by the Turing Machine");
-            else
-                System.out.println("String is not accepted by the Turing Machine");
+            reader.close();
+        } catch (NumberFormatException e) {
+            System.out.println("Error: Tape size and number of states must be valid integers.");
         }
     }
 }
