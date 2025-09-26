@@ -16,7 +16,7 @@ This implementation was created to better understand the fundamental principles 
 #### 1\. Compile the Java files:
 
 ```sh
-javac Transition.java State.java FiniteControl.java TuringMachine.java
+javac *.java
 ```
 
 #### 2\. Run the program:
